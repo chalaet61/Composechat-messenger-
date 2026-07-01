@@ -1,0 +1,6 @@
+{
+  "name": "ComposeChat",
+  "description": "A modern real-time Chat Application built with Jetpack Compose, MVVM + Clean Architecture, and Firebase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
