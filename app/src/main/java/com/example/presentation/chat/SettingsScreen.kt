@@ -20,6 +20,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.presentation.auth.AuthViewModel
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
+import com.example.utils.BiometricHelper
+import com.example.utils.BiometricPreferenceManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +35,12 @@ fun SettingsScreen(
 ) {
     val currentUser = remember { authViewModel.getCurrentUser() }
     val displayName = remember { currentUser?.email?.substringBefore("@") ?: "User" }
+    val context = LocalContext.current
+    val biometricPreferenceManager = remember { BiometricPreferenceManager(context) }
+    val activity = context as? FragmentActivity
+    val isHardwareAvailable = remember { BiometricHelper.isBiometricHardwareAvailable(context) }
+    var isBiometricEnabled by remember { mutableStateOf(biometricPreferenceManager.isBiometricEnabled()) }
+    var biometricErrorMessage by remember { mutableStateOf<String?>(null) }
     var showNotificationDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var selectedTheme by remember { mutableStateOf("System default") }
@@ -134,6 +144,87 @@ fun SettingsScreen(
                     subtitle = "Wallpaper, dark mode toggle, chat history settings",
                     onClick = { showThemeDialog = true }
                 )
+
+                // Biometric Lock Settings Item
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Fingerprint,
+                        contentDescription = "Biometric Lock",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(20.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Biometric Lock",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (!isHardwareAvailable) {
+                                "Biometric hardware not available"
+                            } else if (isBiometricEnabled) {
+                                "Fingerprint / Face lock is active"
+                            } else {
+                                "Require biometric authentication on startup"
+                            },
+                            fontSize = 12.sp,
+                            color = if (!isHardwareAvailable) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Switch(
+                        checked = isBiometricEnabled,
+                        enabled = isHardwareAvailable,
+                        onCheckedChange = { checked ->
+                            if (checked) {
+                                if (activity != null) {
+                                    BiometricHelper.showBiometricPrompt(
+                                        activity = activity,
+                                        title = "Verify Identity",
+                                        subtitle = "Confirm biometrics to enable lock",
+                                        onSuccess = {
+                                            biometricPreferenceManager.setBiometricEnabled(true)
+                                            isBiometricEnabled = true
+                                            biometricErrorMessage = null
+                                        },
+                                        onError = { err ->
+                                            biometricErrorMessage = err
+                                        }
+                                    )
+                                } else {
+                                    biometricPreferenceManager.setBiometricEnabled(true)
+                                    isBiometricEnabled = true
+                                }
+                            } else {
+                                biometricPreferenceManager.setBiometricEnabled(false)
+                                isBiometricEnabled = false
+                            }
+                        }
+                    )
+                }
+
+                if (biometricErrorMessage != null) {
+                    Text(
+                        text = biometricErrorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
+                    )
+                }
+                Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.5.dp)
 
                 SettingsItem(
                     icon = Icons.Default.Notifications,

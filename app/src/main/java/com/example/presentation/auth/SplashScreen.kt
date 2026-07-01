@@ -21,6 +21,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.presentation.navigation.Screen
 import kotlinx.coroutines.delay
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import com.example.utils.BiometricHelper
+import com.example.utils.BiometricPreferenceManager
 
 @Composable
 fun SplashScreen(
@@ -39,11 +46,45 @@ fun SplashScreen(
         label = "scale"
     )
 
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
+    val prefManager = remember { BiometricPreferenceManager(context) }
+    val isBiometricEnabled = remember { prefManager.isBiometricEnabled() && BiometricHelper.isBiometricHardwareAvailable(context) }
+    
+    var isUnlocked by remember { mutableStateOf(!isBiometricEnabled) }
+    var biometricStatusText by remember { mutableStateOf<String?>(null) }
+    
+    fun triggerBiometricPrompt() {
+        if (activity != null) {
+            biometricStatusText = "Awaiting authentication..."
+            BiometricHelper.showBiometricPrompt(
+                activity = activity,
+                title = "App Locked",
+                subtitle = "Confirm biometric credential to enter ComposeChat",
+                onSuccess = {
+                    isUnlocked = true
+                    biometricStatusText = null
+                    onNavigateNext(Screen.ChatList.route)
+                },
+                onError = { err ->
+                    biometricStatusText = "Authentication failed: $err"
+                }
+            )
+        } else {
+            isUnlocked = true
+            onNavigateNext(Screen.ChatList.route)
+        }
+    }
+
     LaunchedEffect(Unit) {
         delay(2000)
         val currentUser = viewModel.getCurrentUser()
         if (currentUser != null) {
-            onNavigateNext(Screen.ChatList.route)
+            if (isBiometricEnabled) {
+                triggerBiometricPrompt()
+            } else {
+                onNavigateNext(Screen.ChatList.route)
+            }
         } else {
             onNavigateNext(Screen.Login.route)
         }
@@ -97,6 +138,34 @@ fun SplashScreen(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.padding(top = 4.dp)
             )
+
+            if (isBiometricEnabled && !isUnlocked) {
+                Spacer(modifier = Modifier.height(36.dp))
+                Button(
+                    onClick = { triggerBiometricPrompt() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Fingerprint,
+                        contentDescription = "Unlock",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Unlock App")
+                }
+                if (biometricStatusText != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = biometricStatusText!!,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+                }
+            }
         }
 
         // WhatsApp-style "from AI Studio" branding at the bottom
