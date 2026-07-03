@@ -24,6 +24,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import com.example.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,26 +73,22 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Hero Icon / Header
+            // Hero Onboarding Illustration
             Card(
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 modifier = Modifier
-                    .size(90.dp)
+                    .fillMaxWidth()
+                    .height(180.dp)
                     .padding(bottom = 16.dp),
-                elevation = CardDefaults.cardElevation(8.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Box(
+                Image(
+                    painter = painterResource(id = R.drawable.img_login_banner_1783108757920),
+                    contentDescription = "Login Illustration",
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Message,
-                        contentDescription = "Chat Logo",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(42.dp)
-                    )
-                }
+                    contentScale = ContentScale.Crop
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))

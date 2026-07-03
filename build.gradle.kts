@@ -8,15 +8,21 @@ plugins {
   alias(libs.plugins.google.services) apply false
 }
 
-tasks.register<Copy>("copyApkToDownload") {
-    from(file("${project.rootDir}/.build-outputs/app-debug.apk"))
-    into(file("${project.rootDir}/APK_DOWNLOAD"))
+val copyToBuildOutputs = tasks.register<Copy>("copyToBuildOutputs") {
+    dependsOn(":app:assembleDebug")
+    from(layout.projectDirectory.file("app/build/outputs/apk/debug/app-debug.apk"))
+    into(layout.projectDirectory.dir(".build-outputs"))
 }
 
-val rootDirFile = project.rootDir
+val copyToApkDownload = tasks.register<Copy>("copyToApkDownload") {
+    dependsOn(":app:assembleDebug")
+    from(layout.projectDirectory.file("app/build/outputs/apk/debug/app-debug.apk"))
+    into(layout.projectDirectory.dir("APK_DOWNLOAD"))
+}
 
 tasks.register("verifyApkDetails") {
-    val apkFile = File(rootDirFile, "APK_DOWNLOAD/app-debug.apk")
+    dependsOn(copyToBuildOutputs, copyToApkDownload)
+    val apkFile = layout.projectDirectory.file("APK_DOWNLOAD/app-debug.apk").asFile
     doLast {
         if (apkFile.exists()) {
             val sizeInBytes = apkFile.length()
